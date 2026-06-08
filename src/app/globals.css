@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050505;
+  --foreground: #fafafa;
+  --primary: #9b4dff;
+  --secondary: #ff4db8;
+  --accent: #4d9bff;
+  --midnight: #0a0a0a;
+  --cosmic-pink: #ff4db8;
+  --dream-purple: #9b4dff;
+  --glass: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.05);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-midnight: var(--midnight);
+  --color-cosmic-pink: var(--cosmic-pink);
+  --color-dream-purple: var(--dream-purple);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Dreamscape Gradients */
+.bg-dream-gradient {
+  background: linear-gradient(135deg, #9b4dff 0%, #ff4db8 100%);
+}
+
+.bg-dream-mesh {
+  background-color: #050505;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(155, 77, 255, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(255, 77, 184, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(77, 155, 255, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(155, 77, 255, 0.15) 0px, transparent 50%);
+}
+
+.text-dream-gradient {
+  background: linear-gradient(135deg, #9b4dff 0%, #ff4db8 100%, #4d9bff 150%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: gradient 8s linear infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+  100% { background-position: 0% center; }
+}
+
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.grainy-overlay {
+  position: relative;
+}
+
+.grainy-overlay::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  z-index: 50;
+}
+
+.stars-overlay {
+  background-image: 
+    radial-gradient(1px 1px at 20px 30px, #eee, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 50px 160px, #ddd, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 90px 40px, #fff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 130px 80px, #fff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 160px 120px, #ddd, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  opacity: 0.05;
+}
