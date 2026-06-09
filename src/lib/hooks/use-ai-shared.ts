@@ -1,11 +1,10 @@
 // ============================================================
-// DreamScape AI — Shared Hook Utilities
-// Base types and helpers for all AI hooks.
+// DreamScape AI — Shared Hook Utilities (Browser-safe)
+// No imports from server-only AI modules.
 // ============================================================
 
 import { useState, useCallback, useRef } from "react";
-import { AIResponse, StreamChunk } from "@/types/ai";
-import { chatStream, ChatMessage } from "@/lib/ai/client";
+import { AIResponse } from "@/types/ai";
 
 // ── Hook State ────────────────────────────────────────────
 export interface HookState<T> {
@@ -24,120 +23,46 @@ export function useHookState<T>(initial: T | null = null) {
   });
 }
 
-// ── Streaming State ───────────────────────────────────────
-export interface StreamingState {
-  isStreaming: boolean;
-  streamedText: string;
-  error: string | null;
-}
-
+// ── Shared Streaming State ────────────────────────────────
 export function useStreamingState() {
-  return useState<StreamingState>({
-    isStreaming: false,
-    streamedText: "",
-    error: null,
-  });
+  const [streamingText, setStreamingText] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  return { streamingText, setStreamingText, isStreaming, setIsStreaming };
 }
 
-// ── Generic Async Runner ──────────────────────────────────
-export function useAsyncRunner<TArgs extends any[], TResult>() {
-  const [state, setState] = useHookState<TResult>();
+// ── Async Runner ──────────────────────────────────────────
+export function useAsyncRunner<T = any>() {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tokenUsage, setTokenUsage] = useState<HookState<T>["tokenUsage"]>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const reset = useCallback(() => {
-    setState({ data: null, loading: false, error: null, tokenUsage: null });
-  }, [setState]);
-
-  const run = useCallback(
-    async (
-      fn: (...args: TArgs) => Promise<AIResponse<TResult>>,
-      ...args: TArgs
-    ): Promise<TResult | null> => {
-      setState((prev) => ({ ...prev, loading: true, error: null }));
-      try {
-        const result = await fn(...args);
-        if (result.success && result.data !== undefined) {
-          setState({
-            data: result.data,
-            loading: false,
-            error: null,
-            tokenUsage: result.tokenUsage || null,
-          });
-          return result.data;
-        } else {
-          const errMsg = result.error || "Unknown error";
-          setState((prev) => ({ ...prev, loading: false, error: errMsg }));
-          return null;
-        }
-      } catch (err: any) {
-        const errMsg = err.message || "Unexpected error";
-        setState((prev) => ({ ...prev, loading: false, error: errMsg }));
-        return null;
-      }
-    },
-    [setState]
-  );
-
-  const cancel = useCallback(() => {
-    if (abortRef.current) {
-      abortRef.current.abort();
+  const run = useCallback(async (fn: () => Promise<T>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await fn();
+      setData(result);
+      return result;
+    } catch (err: any) {
+      const msg = err?.message || "An error occurred";
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
     }
-    setState((prev) => ({ ...prev, loading: false }));
-  }, [setState]);
+  }, []);
 
-  return { state, setState, run, reset, cancel };
+  const reset = useCallback(() => {
+    setData(null);
+    setLoading(false);
+    setError(null);
+    setTokenUsage(null);
+  }, []);
+
+  return { data, loading, error, tokenUsage, run, reset } as const;
 }
 
-// ── Streaming Runner ──────────────────────────────────────
-export function useStreamingRunner() {
-  const [state, setState] = useStreamingState();
-  const [finalText, setFinalText] = useState<string>("");
-
-  const stream = useCallback(
-    async (
-      messages: ChatMessage[],
-      config?: { provider?: "openai" | "anthropic"; model?: string }
-    ): Promise<string> => {
-      setState({ isStreaming: true, streamedText: "", error: null });
-      setFinalText("");
-
-      try {
-        const tokenUsage = await chatStream(
-          messages,
-          (chunk: StreamChunk) => {
-            if (chunk.delta) {
-              setState((prev) => ({
-                ...prev,
-                streamedText: prev.streamedText + chunk.delta,
-              }));
-            }
-          },
-          config as any
-        );
-
-        // Use a ref-style getter for the final text
-        return new Promise<string>((resolve) => {
-          setState((prev) => {
-            const text = prev.streamedText;
-            return { isStreaming: false, streamedText: text, error: null };
-          });
-          setFinalText((prev) => {
-            resolve(prev);
-            return prev;
-          });
-        });
-      } catch (err: any) {
-        setState({ isStreaming: false, streamedText: "", error: err.message });
-        return "";
-      }
-    },
-    [setState]
-  );
-
-  const cancelStream = useCallback(() => {
-    // Marker for cancellation
-    setState((prev) => ({ ...prev, isStreaming: false }));
-  }, [setState]);
-
-  return { state, stream, cancelStream };
-}
+// ── Types (exported for convenience, no client import) ────
+export type { AIResponse } from "@/types/ai";
