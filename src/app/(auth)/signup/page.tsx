@@ -230,7 +230,7 @@ export default function SignupPage() {
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-3">
-                  <Chrome className="w-5 h-5" />
+                  <Globe className="w-5 h-5" />
                   Sign up with Google
                 </span>
               )}

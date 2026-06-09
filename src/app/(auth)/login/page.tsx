@@ -222,7 +222,7 @@ export default function LoginPage() {
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-3">
-                  <Chrome className="w-5 h-5" />
+                  <Globe className="w-5 h-5" />
                   Continue with Google
                 </span>
               )}
