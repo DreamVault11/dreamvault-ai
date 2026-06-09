@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Moon, Chrome, Apple, Sparkles, ArrowRight, Shield } from "lucide-react";
+import { Moon, Globe, Apple, Sparkles, ArrowRight, Shield } from "lucide-react";
 import { DreamButton } from "@/components/ui/DreamButton";
 import { DreamInput } from "@/components/ui/DreamInput";
 import { DreamCard } from "@/components/ui/DreamCard";
