@@ -268,7 +268,7 @@ export default function BillingPage() {
                     <span className="flex items-center justify-center gap-2">
                       <motion.span
                         animate={{ rotate: 360 }}
-                        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        transition={{ repeat: 999999, duration: 1, ease: "linear" }}
                         className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
                       />
                       Redirecting...
