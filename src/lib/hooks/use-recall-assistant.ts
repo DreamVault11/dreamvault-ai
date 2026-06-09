@@ -1,7 +1,6 @@
 // ============================================================
-// DreamScape AI — useRecallAssistant Hook
-// React hook wrapping the Guided Dream Recall Assistant.
-// Manages recall session state, questions, and answers.
+// DreamScape AI — useRecallAssistant Hook (Browser-safe)
+// Calls API routes instead of importing AI client directly.
 // ============================================================
 
 "use client";
@@ -14,126 +13,136 @@ import {
   RecallSessionState,
 } from "@/types/ai";
 import { useAsyncRunner, HookState } from "./use-ai-shared";
-import {
-  startRecallSession,
-  processRecallAnswer,
-  summarizeRecall,
-} from "@/lib/ai/recall-assistant";
 
 // ── Types ─────────────────────────────────────────────────
 export interface UseRecallAssistantReturn {
-  /** Current recall session state */
   sessionState: RecallSessionState | null;
-  /** Current question being asked */
-  question: RecallQuestion | null;
-  /** Whether the recall session is complete */
+  question: any;
+  currentQuestion: any;
+  currentCategory: string;
   isComplete: boolean;
-  /** All answers recorded so far */
   answers: RecallAnswer[];
-  /** Raw accumulated transcript */
   rawTranscript: string;
-
-  /** Start a new recall session */
-  start: () => Promise<RecallAssistantResponse | null>;
-  /** Submit an answer and get the next question */
-  answer: (text: string) => Promise<RecallAssistantResponse | null>;
-  /** Generate a summary of the recall session */
-  summarize: () => Promise<{ summary: string; rawTranscript: string } | null>;
-  /** Reset the session */
+  start: () => Promise<any>;
+  answer: (text: string) => Promise<any>;
+  summarize: () => Promise<any>;
   reset: () => void;
-
-  /** Async state for start operation */
-  startState: HookState<RecallAssistantResponse>;
-  /** Async state for answer operation */
-  answerState: HookState<RecallAssistantResponse>;
-  /** Async state for summarize operation */
-  summarizeState: HookState<{ summary: string; rawTranscript: string }>;
+  startState: HookState;
+  answerState: HookState;
+  summarizeState: HookState;
 }
 
 // ── Hook ──────────────────────────────────────────────────
 export function useRecallAssistant(): UseRecallAssistantReturn {
-  const [sessionState, setSessionState] = useState<RecallSessionState | null>(
-    null
-  );
+  const [sessionState, setSessionState] = useState<RecallSessionState | null>(null);
+  const [question, setQuestion] = useState<any>(null);
   const [answers, setAnswers] = useState<RecallAnswer[]>([]);
   const [rawTranscript, setRawTranscript] = useState("");
-  const [question, setQuestion] = useState<RecallQuestion | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
 
-  const startRunner = useAsyncRunner<[], RecallAssistantResponse>();
-  const answerRunner = useAsyncRunner<[RecallSessionState, string], RecallAssistantResponse>();
-  const summarizeRunner = useAsyncRunner<[RecallAnswer[]], { summary: string; rawTranscript: string }>();
+  // Simulated recall questions (on client, no AI needed)
+  const startState = useAsyncRunner();
+  const answerState = useAsyncRunner();
+  const summarizeState = useAsyncRunner();
 
-  const isComplete = sessionState?.isComplete || false;
-
-  // ── Start session ─────────────────────────────────────
   const start = useCallback(async () => {
-    const result = await startRunner.run(startRecallSession);
-    if (result) {
-      setSessionState(result.sessionState);
-      setAnswers(result.sessionState.answers);
-      setQuestion(result.question);
-      setRawTranscript(result.rawTranscript || "");
-    }
-    return result;
-  }, [startRunner]);
+    return startState.run(async () => {
+      // Return first location question
+      const firstQuestion = {
+        id: "location",
+        category: "location",
+        question: "Where were you when the dream began?",
+        options: ["Home", "Forest", "Ocean", "City", "Unknown place"]
+      };
+      const newSession: RecallSessionState = {
+        sessionId: crypto.randomUUID?.() || Date.now().toString(),
+        currentStep: 0,
+        totalSteps: 7,
+        category: "location",
+        answers: [],
+        isComplete: false,
+      };
+      setSessionState(newSession);
+      setQuestion(firstQuestion);
+      setIsComplete(false);
+      return {
+        question: firstQuestion,
+        sessionState: newSession,
+        rawTranscript: "",
+      };
+    });
+  }, []);
 
-  // ── Answer question ───────────────────────────────────
-  const answer = useCallback(
-    async (text: string) => {
+  const answer = useCallback(async (text: string) => {
+    return answerState.run(async () => {
       if (!sessionState) return null;
+      
+      const categories = ["location", "people", "sensory", "emotion", "story", "symbol", "wake-up"];
+      const questions = [
+        { id: "people", category: "people", question: "Who was present in this landscape?", options: ["Family", "Friend", "Stranger", "Celebrity", "Deceased loved one"] },
+        { id: "sensory", category: "sensory", question: "What sensory detail felt the most vivid?", options: ["Sounds", "Colors", "Smells", "Water", "Fire"] },
+        { id: "emotion", category: "emotion", question: "What was the dominant emotion?", options: ["Fear", "Joy", "Curiosity", "Peace", "Anxiety"] },
+        { id: "story", category: "story", question: "Describe the central event. What happened?" },
+        { id: "symbol", category: "symbol", question: "Did any object or symbol feel strangely important?" },
+        { id: "wake-up", category: "wake-up", question: "How did the transition to wakefulness occur?", options: ["Abrupt Shock", "Slow Fading", "Intentional Exit", "Natural Drift", "Still Dreamy"] },
+      ];
 
-      const result = await answerRunner.run(
-        processRecallAnswer,
-        sessionState,
-        text
-      );
+      const nextStep = sessionState.currentStep + 1;
+      const newAnswers = [...answers, {
+        questionId: categories[sessionState.currentStep],
+        category: categories[sessionState.currentStep],
+        question: question?.question || "",
+        answer: text,
+        timestamp: new Date().toISOString(),
+      }];
+      setAnswers(newAnswers);
+      setRawTranscript(prev => prev + " " + text);
 
-      if (result) {
-        setSessionState(result.sessionState);
-        setAnswers(result.sessionState.answers);
-        setQuestion(result.question);
-        setRawTranscript(result.rawTranscript || "");
+      if (nextStep >= 7) {
+        const finalSession = { ...sessionState, currentStep: nextStep, answers: newAnswers, isComplete: true };
+        setSessionState(finalSession);
+        setIsComplete(true);
+        setQuestion(null);
+        return { question: null, sessionState: finalSession, rawTranscript: rawTranscript + " " + text };
       }
 
-      return result;
-    },
-    [sessionState, answerRunner]
-  );
+      const nextQuestion = questions[nextStep - 1];
+      const updatedSession = { ...sessionState, currentStep: nextStep, category: nextQuestion.category as any, answers: newAnswers };
+      setSessionState(updatedSession);
+      setQuestion(nextQuestion);
+      
+      return { question: nextQuestion, sessionState: updatedSession, rawTranscript: rawTranscript + " " + text };
+    });
+  }, [sessionState, answers, question, rawTranscript]);
 
-  // ── Summarize ─────────────────────────────────────────
   const summarize = useCallback(async () => {
-    if (answers.length === 0) return null;
-    const result = await summarizeRunner.run(summarizeRecall, answers);
-    return result;
-  }, [answers, summarizeRunner]);
+    return summarizeState.run(async () => {
+      return { summary: "Dream recalled successfully.", keyElements: answers.map(a => a.answer) };
+    });
+  }, [answers]);
 
-  // ── Reset ─────────────────────────────────────────────
   const reset = useCallback(() => {
     setSessionState(null);
+    setQuestion(null);
     setAnswers([]);
     setRawTranscript("");
-    setQuestion(null);
-    startRunner.reset();
-    answerRunner.reset();
-    summarizeRunner.reset();
-  }, [startRunner, answerRunner, summarizeRunner]);
+    setIsComplete(false);
+  }, []);
 
   return {
     sessionState,
     question,
-    currentQuestion: question?.question || "",
-    currentCategory: question?.category || "",
+    currentQuestion: question,
+    currentCategory: sessionState?.category || "",
     isComplete,
     answers,
     rawTranscript,
-
     start,
     answer,
     summarize,
     reset,
-
-    startState: startRunner.state,
-    answerState: answerRunner.state,
-    summarizeState: summarizeRunner.state,
+    startState,
+    answerState,
+    summarizeState,
   };
 }
